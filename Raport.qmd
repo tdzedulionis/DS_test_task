@@ -1,0 +1,191 @@
+---
+title: "Data science - test task"
+author: 
+- "Tomas Dzedulionis"
+date: "`r Sys.Date()`"
+format: pdf
+editor: visual
+header-includes:
+  - \usepackage{titling}
+  - \pretitle{\begin{center}
+    \includegraphics[width=2in,height=2in]{input/iki_logo.png}\LARGE\\}
+  - \posttitle{\end{center}}
+---
+
+\newpage
+
+## 1. Task Description
+
+Develop a model for each of the four items that predicts the variable ZG (column A) for the period 01.08.21 - 23.02.22.
+
+## 2. Modelling
+
+Bayesian Additive Regression Trees (BART) has been chosen as the modeling technique for this task. BART offers a flexible approach to fitting regression models without imposing strict parametric assumptions. In BART, an ensemble of trees is constructed using a back-fitting algorithm. Initially, a small tree is fitted to the data, and then subsequent trees are built to capture the residuals iteratively.
+
+One of the strengths of BART lies in its use of intelligent priors, which allow the model to systematically learn the appropriate amount of shrinkage and the depth of the trees. This feature helps prevent overfitting and ensures that the true relationships between variables are accurately captured. Additionally, BART has the capability to handle missing data without requiring imputation.
+
+The optimal parameters for each model are determined through grid search, and model performance is assessed using 10-fold cross-validation. This approach ensures robustness and generalizability of the models.
+
+### 2.1. **Data pre - processing**
+
+The dataset was partitioned based on the article_no variable, resulting in four distinct models. To enhance the predictive power and account for calendar effects, additional regressors were incorporated by mapping columns representing month, day of the week, and holidays onto the dataframe.
+
+In preparation for modeling, the values of the zg column for each model were transformed using a square-root transformation. This transformation helps in stabilizing variance and normalizing the distribution, thereby rendering the data more suitable to statistical analysis and modeling.
+
+Moreover, potential outliers were identified using the Interquartile Range (IQR) method. Outliers were determined by calculating the difference between the 75th and 25th percentiles (the IQR), and any values falling below the 25th percentile minus 1.5 times the IQR, or above the 75th percentile plus 1.5 times the IQR, were flagged as outliers.
+
+$$
+\begin{aligned}
+\text{IQR} = Q_{3} - Q_{1}
+\end{aligned}
+$$
+
+### 2. **Exploratory Data Analysis (EDA)**
+
+Second step was to Exploratory Data Analysis (EDA).
+
+#### 2.1. *Descriptive statistics*
+
+Model nr.1 - Article no. 1294:
+
+```{r, echo=FALSE}
+structure(c(Min. = 0, `1st Qu.` = 2484.2025, Median = 3189.695, 
+Mean = 3156.3233014862, `3rd Qu.` = 3925.5125, Max. = 16296.38, 
+`NA's` = 207), class = c("summaryDefault", "table"))
+```
+
+The sales data for Article No. 1294 exhibits a mean of 3156.32 and a median of 3189.70, with values ranging from 0 to 16296.38. This item also contains 207 missing values in the dataset.
+
+Model nr.2 - Article no. 1782:
+
+```{r, echo=FALSE}
+structure(c(Min. = 44.86, `1st Qu.` = 14291.815, Median = 18937.865, 
+Mean = 28137.2872186837, `3rd Qu.` = 43650.635, Max. = 152838.17, 
+`NA's` = 207), class = c("summaryDefault", "table"))
+```
+
+For Article No. 1782, the sales data demonstrates a notably higher mean of 28137.29 and a median of 18937.87. The range extends from 44.86 to 152838.17, and similarly, there are 207 missing values.
+
+Model nr.3 - Article no. 89450:
+
+```{r, echo=FALSE}
+structure(c(Min. = 0, `1st Qu.` = 0, Median = 3.63, Mean = 3159.41512738853, 
+`3rd Qu.` = 2442.58, Max. = 48316.92, `NA's` = 207), class = c("summaryDefault", 
+"table"))
+```
+
+Article No. 89450 showcases distinct sales characteristics, with a mean of 3159.42 and a median of only 3.63. The range spans from 0 to 48316.92, and like the others, it contains 207 missing values.
+
+Model nr.4 - Article no. 89479:
+
+```{r, echo=FALSE}
+structure(c(Min. = 35.21, `1st Qu.` = 3266.7775, Median = 9106.55, 
+Mean = 13774.0502653928, `3rd Qu.` = 22768.2125, Max. = 58284.57, 
+`NA's` = 207), class = c("summaryDefault", "table"))
+```
+
+Lastly, Article No. 89479 indicates a mean sales of 13774.05 and a median of 9106.55, with values ranging from 35.21 to 58284.57. Similarly, it contains 207 missing values.
+
+\clearpage
+
+#### 2.2. Histograms
+
+::: center
+![Distribution plots](plots/hist_plots.pdf){width="100%" height="400"}
+:::
+
+The distributions of ZG values across the different article numbers exhibit a range of patterns, from right-skewed to bimodal, suggesting varying characteristics in the underlying data for each article.
+
+#### 2.3. Trend plots
+
+::: center
+![Trend plots](plots/trend_plots.pdf){width="100%" height="400"}
+:::
+
+Red dots indicate previously detected outliers. For article no. 1294, the time series exhibits a volatile and fluctuating pattern, with several spikes in the ZG values, particularly in 2020. The red dots represent the outliers identified using the IQR method, indicating the presence of unusual or extreme ZG values throughout the time series.
+
+The time series for article no. 1782 also shows a volatile trend, with multiple peaks and troughs in the ZG values. The red dots highlighting the outliers suggest that the dataset contains several extreme or atypical data points that may warrant further investigation.
+
+Similarly, the time series for article no. 89450 demonstrates a fluctuating pattern, with the presence of multiple outliers, as indicated by the red dots, suggesting the potential existence of unusual ZG values within the data.
+
+Lastly, the time series for article no. 89479 exhibits a more pronounced and sustained peak in the ZG values, followed by a gradual decline. The red dots again highlight the outliers, which appear to be concentrated in the higher value range of the time series. It seems that the highest peaks are around the start of each new year, thus the inclusion of months variable should help.
+
+After further inspecting the plots, it seems that outliers may not be removed as the volatile and spiky nature of the ZG values, with frequent occurrences of the red dot outliers, suggests that these high or low values are not necessarily incorrect, but rather reflect the underlying dynamics of the data.
+
+#### 2.4. Weekdays effects plots
+
+::: center
+![Weekday effects](plots/weekday_plots.pdf){width="100%" height="400"}
+:::
+
+The effects of weekdays were visualized using boxplots.
+
+The distribution of ZG values across different weekdays shows some interesting patterns:
+
+For article no. 1294, the ZG values tend to be higher on Wednesdays and Thursdays, with a few outliers on other days. This suggests that there may be specific factors or processes driving higher ZG values during the middle of the week for this particular article.
+
+The pattern is similar for article no. 1782, where the ZG values are generally higher on Wednesdays and Thursdays, with some elevated values on other weekdays as well.
+
+Article no. 89450 exhibits a more uniform distribution of ZG values across the weekdays, without any clear spikes or patterns on specific days.
+
+Finally, for article no. 89479, the ZG values appear to be consistently higher on Mondays, with a more dispersed distribution throughout the rest of the week.
+
+#### 2.5. Promo plots
+
+::: center
+![Promos and Holidays effects](plots/promo_holiday_plots.pdf){width="100%" height="400"}
+:::
+
+The histograms shows the impact of various combinations of promos, while the time series plots provide a comprehensive view of how promotional activities and holidays impact the 'ZG' metric across different article numbers.
+
+For article no. 1294, the 'ZG' values exhibit pronounced fluctuations, often coinciding with spikes in the number of active promotions. The influence of holidays is evident, as some of the major 'ZG' peaks appear to align with holiday periods.
+
+A similar dynamic is observed for article no. 1782, where the 'ZG' values demonstrate substantial variations, frequently corresponding to changes in promotional intensity. The impact of holidays is also visible, though not as pronounced as in the previous case.
+
+The pattern for article no. 89450 is somewhat different, with a less volatile 'ZG' trend. While some of the 'ZG' increases correlate with promotional activities, there are also periods where the 'ZG' values rise without a direct link to promotions, particularly in the latter half of the year.
+
+For article no. 89479, the 'ZG' time series exhibits a complex and dynamic behavior, with sharp spikes and troughs. These fluctuations appear closely tied to the variations in the number of active promotions, which tend to be concentrated in the latter part of the year and carry over into the following year. The influence of holidays is also evident in this case.
+
+::: center
+![Alt](plots/promo_plots(1).pdf){width="100%" height="400"} ![Alt](plots/promo_plots(2).pdf){width="100%" height="400"}
+:::
+
+### 3. **BART - Modelling**
+
+Once the optimal parameters for the Bayesian Additive Regression Trees model are determined through grid search and the models are constructed, they are saved into the 'logs' folder. This practice helps save time when running the code in the future.
+
+Following the construction of the models, convergence diagnostics tests and error assumption tests are conducted to ensure the models are reliable and accurate. Additionally, the model fit is assessed by comparing modeled versus actual values, and variables importance tests are generated to identify the most influential predictors in the model.
+
+::: center
+![1st model](plots/Fitted_1.pdf){width="100%" height="400"}
+:::
+
+::: center
+![2nd model](plots/Fitted_2.pdf){width="100%" height="400"}
+:::
+
+::: center
+![3rd model](plots/Fitted_3.pdf){width="100%" height="400"}
+:::
+
+::: center
+![4th model](plots/Fitted_4.pdf){width="100%" height="400"}
+:::
+
+Overall, the models perform well in capturing the relationship between the predictors and the target variable. However, it's noted that three of the models (1st, 2nd, and 4th) occasionally tend to overestimate lower values.
+
+::: center
+![Alt](plots/model_1_VAR_Importance.pdf){width="400" height="300"} ![Alt](plots/model_2_VAR_Importance.pdf){width="400" height="300"}
+:::
+
+::: center
+![Alt](plots/model_3_VAR_Importance.pdf){width="400" height="300"} ![Alt](plots/model_4_VAR_Importance.pdf){width="400" height="300"}
+:::
+
+### 4. **Predictions**
+
+The final step involves generating predictions for each of the models, which are visualized in plots. In these plots, the orange line represents the predictions, while the grey background illustrates the 95% confidence interval.
+
+::: center
+![Alt](plots/model_1_forecasts.pdf){width="100%" height="450"} ![Alt](plots/model_2_forecasts.pdf){width="100%" height="450"} ![Alt](plots/model_3_forecasts.pdf){width="100%" height="450"} ![Alt](plots/model_4_forecasts.pdf){width="100%" height="450"}
+:::

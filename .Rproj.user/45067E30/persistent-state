@@ -1,0 +1,8 @@
+build-last-errors="[]"
+build-last-errors-base-dir=""
+build-last-outputs="[]"
+compile_pdf_state="{\"tab_visible\":false,\"running\":false,\"target_file\":\"\",\"output\":\"\",\"errors\":[]}"
+files.monitored-path="C:/"
+find-in-files-state="{\"handle\":\"f4410f58da0a403b89c0b769fb8a06c1\",\"input\":\"Finalise\",\"path\":\"C:/Users/Tomas.Dzedulionis/OneDrive - Euromonitor International/Desktop/Projects/Test/Test_task\",\"regex\":false,\"ignoreCase\":true,\"results\":{\"file\":[\"C:/Users/Tomas.Dzedulionis/OneDrive - Euromonitor International/Desktop/Projects/Test/Test_task/00_main.R\",\"C:/Users/Tomas.Dzedulionis/OneDrive - Euromonitor International/Desktop/Projects/Test/Test_task/00_main.R\"],\"line\":[42,43],\"lineValue\":[\"# Finalise\",\"source(\\\"06_finalise.R\\\")\"],\"matchOn\":[[2],[11]],\"matchOff\":[[10],[19]],\"replaceMatchOn\":[[],[]],\"replaceMatchOff\":[[],[]]},\"running\":false,\"replace\":false,\"preview\":false,\"gitFlag\":false,\"replacePattern\":\"\"}"
+imageDirtyState="1"
+saveActionState="-1"

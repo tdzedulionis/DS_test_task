@@ -1,0 +1,444 @@
+---
+title: "Sports Sponsorship Deal value methodology"
+author: 
+- "Tomas Dzedulionis"
+- "Economies and Consumers Data Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    highlight: tango
+---
+
+<center>
+
+![](img/Euromonitor-International.svg){width="3490" height="175"}
+
+</center>
+
+```{r setup, include=FALSE}
+if(!require("reactable")) install.packages("reactable"); library("reactable")
+if(!require("rmarkdown")) install.packages("rmarkdown"); library("rmarkdown")
+if(!require("openxlsx")) install.packages("openxlsx"); library("openxlsx")
+if(!require("tidyverse")) install.packages("tidyverse"); library("tidyverse")
+if(!require("htmltools")) install.packages("htmltools"); library("htmltools")
+rm(list = ls())
+load(file = "correlations/correlations.RData")
+```
+
+
+# Description
+
+## Case
+
+A valuation-based approach to sponsorship evaluation is a universal use case across the sports industry and provides a logical and accurate assessment of how much prospective and existing sponsors are/should be paying for premium category sponsorships across the worlds’ largest sports leagues. As deal financials are often confidential, there are major knowledge gaps when it comes to know how much a sports property can ask for, and how much a corporate sponsor should pay at present, and how much to set aside for sponsorship within future strategic marketing plans. 
+
+## Scope
+
+**Leagues:**
+
+1.  ***North American top 5 major leagues*** National Football League (*NFL*), National Basketball League (*NBA*), Major League Baseball (*MLB*), National Hockey League (*NHL*), Major League Soccer (*MLS*);
+
+2.  ***Top 5 European football/soccer competitions*** (Premier League, La Liga, Serie A, Bundesliga, Ligue 1).
+
+
+**Categories:**
+
+1.  ***Equipment Partner*** (Apparel provider for team's official match kit.);
+
+2.  ***Main Kit Sponsor*** (Sponsor, logo of which enjoys the highest visibility on teams's official match kit. Usually takes higher position in the hierarchy of commercial partners. Examples include: central shirt sponsor across football teams; NBA's patch sponsor.);
+
+3.  ***Other Kit Sponsor*** (Any other sponsor, logo of which appears on the official match kit. Examples could be: sleeve; shorts; back of the shirt; non-main front of the shirt; sport-specific apparel/equipment (i.e. hockey helmet).);
+
+4.  ***Stadium Name Partner*** (The sponsor that holds venue naming rights and appears in the team's home venue name.).
+
+
+**Category types:**
+
+1. ***Mature sponsorship categories*** - The longest established and most common sponsorship categories in which deals are signed with any given team e.g. main kit sponsorship in European football leagues;
+
+2. ***Emerging sponsorship categories*** - Sponsorship categories in their relative infancy within which value/volume potential is generally yet to be fully realised e.g. other kit (helmet) sponsorship in NHL;
+
+3. ***Potential sponsorship categories*** - An indicator of entirely unrealised sponsorship revenue based on categories yet to be created but that have an established precedent in other leagues e.g. main kit sponsorship is ubiquitous in European football/soccer but yet to be permissioned by the NFL.
+
+
+**Seven models are required:**
+
+```{r, echo=FALSE}
+definitions <- read.xlsx("K:/GMID Research/EC Projects/EC_Other/Sports_Deal_Value/input/Definitions.xlsx", sheet = "Definitions")
+definitions %<>% select(Model, Category, Category.type, Competitions) %>% na.omit() %>% rename(`Category type` = `Category.type`)
+reactable(definitions, defaultPageSize = 7, resizable = TRUE, outlined = TRUE, bordered = TRUE, compact = TRUE)
+```
+
+## Explanatory variables
+
+Currently there are 22 different thoroughly selected explanatory variables used in modelling process. Each of them reflects different internal and environmental factors that could possibly influence deal value.
+
+```{r, echo=FALSE}
+exog <- read.xlsx("K:/GMID Research/EC Projects/EC_Other/Sports_Deal_Value/input/Definitions.xlsx", sheet = "Definitions")
+exog %<>% select(1,2) %>% rename(`Explanatory variable` = 1, `Description` = 2)
+range <- c((which(exog[1]=="Predictors")+1):(which(exog[1]=="EXAMPLES")-1))
+exog <- exog[range,]
+
+reactable(exog, defaultPageSize = 5, resizable = TRUE, outlined = TRUE, bordered = TRUE, compact = TRUE)
+```
+
+# Modelling
+
+## BART model
+
+For modelling purpose, Bayesian Additive Regression Trees (BART) model is chosen. Bayesian additive regression trees provides a flexible approach to fitting a variety of regression models while avoiding strong parametric assumptions. In BART, back-fitting algorithm is used to get the ensemble of trees where a small tree is fitted to the data and then the residual of that tree is fitted with another tree iteratively. Model uses intelligent priors to methodically learn the amount of shrinkage or the depth or the trees and these features helps to ensure that model is not overfitting and that the real relationship between variables is determined.
+
+## Modelling process
+
+1.  **Data pre - processing.** Some problems are handled before the actual modelling and forecasting. Using statistical methods, outliers for every category are detected and marked in newly created dummy variable. This outlier detection helps to better determine the actual relationship between auxiliary variables and dependant variable. Also, logarithmic transformation of deal value is performed to address data skewness and make highly skewed distribution less skewed.
+
+2.  **Modelling**. Different BART models are fitted for each category. By using automatic iterative methods, the combination of parameters that generates lowest out-of-sample root mean square error is chosen. No manual explanatory variables selection is needed - model is capable to determine which variables are most important. After the model creation process is done, model fit is checked (how well model reflects already known data).
+
+3.  **Predicting**. Previously created and trained model is then used to predict unknown deal values. After predictions are made, variable importance plots are generated. These plots reveal which explanatory variables had most significant effects for each deal category (the proportion of times each variable is chosen for a splitting rule).
+
+# Correlations {.tabset .tabset-fade}
+
+## Equipment Partner (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName111"> Show/Hide </button>  
+</div>
+<div id="BlockName111" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[1]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Equipment Partner \n(Mature)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Equipment Partner (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName112"> Show/Hide </button>  
+</div>
+<div id="BlockName112" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[5]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Equipment Partner \n(Emerging and potential)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Main Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName113"> Show/Hide </button>  
+</div>
+<div id="BlockName113" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[2]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Main Kit Sponsor \n(Mature)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Main Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName114"> Show/Hide </button>  
+</div>
+<div id="BlockName114" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[6]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Main Kit Sponsor \n(Emerging and potential)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Other Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName115"> Show/Hide </button>  
+</div>
+<div id="BlockName115" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[3]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Other Kit Sponsor \n(Mature)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Other Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName116"> Show/Hide </button>  
+</div>
+<div id="BlockName116" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[7]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Other Kit Sponsor \n(Emerging and potential)")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+## Stadium Name Partner
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName117"> Show/Hide </button>  
+</div>
+<div id="BlockName117" class="collapse">  
+```{r, echo=FALSE}
+df <- correlations[[4]] %>%
+  na.omit() %>%
+  round(., 2) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Factor") %>%
+  arrange(.[,2]) %>%
+  mutate(Factor = factor(Factor, levels = Factor))
+
+ggplot(df, aes(x = df[,2], y = Factor)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(x = "Correlation", y = "") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 14, face = "bold")) +
+  ggtitle("Correlation with Stadium Name Partner")+
+  geom_text(aes(label = df[,2]), color = "white", size = 3.5, position = position_stack(vjust = 0.5))+
+  theme(plot.margin = margin(10, 60, 10, 10, unit = "pt"))
+```
+</div>
+
+# Variables importance {.tabset .tabset-fade}
+
+## Equipment Partner (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName11"> Show/Hide </button>  
+</div>
+<div id="BlockName11" class="collapse">  
+
+![](img/Equipment_Partner_(Mature)_VAR_Importance.svg)
+
+</div>
+
+## Equipment Partner (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName12"> Show/Hide </button>   
+</div>
+<div id="BlockName12" class="collapse">  
+
+![](img/Equipment_Partner_(Emerging_and_potential)_VAR_Importance.svg)
+
+</div>
+
+## Main Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName13"> Show/Hide </button>   
+</div>
+<div id="BlockName13" class="collapse">  
+
+![](img/Main_Kit_Sponsor_(Mature)_VAR_Importance.svg)
+
+</div>
+
+## Main Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName14"> Show/Hide </button>  
+</div> 
+<div id="BlockName14" class="collapse">  
+
+![](img/Main_Kit_Sponsor_(Emerging_and_potential)_VAR_Importance.svg)
+
+</div>
+
+## Other Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName15"> Show/Hide </button>  
+</div> 
+<div id="BlockName15" class="collapse">  
+
+![](img/Other_Kit_Sponsor_(Mature)_VAR_Importance.svg)
+
+</div>
+
+## Other Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName16"> Show/Hide </button>   
+</div>
+<div id="BlockName16" class="collapse">  
+
+![](img/Other_Kit_Sponsor_(Emerging_and_potential)_VAR_Importance.svg)
+
+</div>
+
+## Stadium Name Partner
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName17"> Show/Hide </button>   
+</div>
+<div id="BlockName17" class="collapse">  
+
+![](img/Stadium_Name_Partner_VAR_Importance.svg)
+
+</div>
+
+
+# Partial dependence plots {.tabset .tabset-fade}
+
+## Equipment Partner (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName1"> Show/Hide </button>   
+</div>
+<div id="BlockName1" class="collapse">  
+
+![](img/Equipment_Partner_(Mature)_pd_plot.svg)
+
+</div>
+
+## Equipment Partner (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName2"> Show/Hide </button>  
+</div> 
+<div id="BlockName2" class="collapse">  
+
+![](img/Equipment_Partner_(Emerging_and_potential)_pd_plot.svg)
+
+</div>
+
+## Main Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName3"> Show/Hide </button>   
+</div>
+<div id="BlockName3" class="collapse">  
+![](img/Main_Kit_Sponsor_(Mature)_pd_plot.svg)
+
+</div>
+
+## Main Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName4"> Show/Hide </button>  
+</div> 
+<div id="BlockName4" class="collapse">  
+![](img/Main_Kit_Sponsor_(Emerging_and_potential)_pd_plot.svg)
+
+</div>
+
+## Other Kit Sponsor (Mature)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName5"> Show/Hide </button>  
+</div> 
+<div id="BlockName5" class="collapse">  
+![](img/Other_Kit_Sponsor_(Mature)_pd_plot.svg)
+
+</div>
+
+## Other Kit Sponsor (Emerging and potential)
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName6"> Show/Hide </button>   
+</div>
+<div id="BlockName6" class="collapse">  
+![](img/Other_Kit_Sponsor_(Emerging_and_potential)_pd_plot.svg)
+
+</div>
+
+## Stadium Name Partner
+
+<div style="text-align: center;">
+<button class="btn btn-primary" data-toggle="collapse" data-target="#BlockName7"> Show/Hide </button> 
+</div>
+<div id="BlockName7" class="collapse">  
+![](img/Stadium_Name_Partner_pd_plot.svg)
